@@ -22,7 +22,7 @@ from scripts.data_wrangling import load_data
 #c    'background': '#111111',
 #    'text': '#7FDBFF'
 #}
-app = dash.Dash(__name__,title='Household Analytics',external_stylesheets=[dbc.themes.BOOTSTRAP])#, external_stylesheets=external_stylesheets)
+app = dash.Dash(__name__,title='Household Analytics',external_stylesheets=[dbc.themes.SLATE])#, external_stylesheets=external_stylesheets)
 
 
 df,df2,dg = load_data()
@@ -39,12 +39,12 @@ fig2 = px.line(df, x="DateTime",
 fig_expenses = px.bar(dg, x="DateTime", y="Value", color='Category',title='Udgifter fordelt på kategorier')
 bar_style(fig_expenses)
 
-cardstyle = {'borderRadius': '5px',
-'backgroundColor':'#f9f9f9',
-'margin':'10px',
-'padding': '15px',
-'position': 'relative',
-'boxShadow': '2px 2px 2px lightgrey'}
+#cardstyle = {'borderRadius': '5px',
+#'backgroundColor':'#f9f9f9',
+#'margin':'10px',
+#'padding': '15px',
+#'position': 'relative',
+#'boxShadow': '2px 2px 2px lightgrey'}
 
 unique_months = dg['DateTime'].drop_duplicates().reset_index(drop=True)
 max_slider_steps = unique_months.shape[0]-1
@@ -87,7 +87,7 @@ html.Div(children = [
                                 html.H6(id='lastest-expense',children=['FLASHY CARD']),
                                 html.P('Total forbrug seneste måned')
                             ]),
-                        html.Div(className = 'mini_container', #   id ='card2',
+                        html.Div(className = 'mini_container', #id ='card2',
                                 children = [
                                     html.H6(id='percentile-groc',children=['0']),
                                     html.P('Dagligvarerandel seneste måned')
@@ -130,29 +130,67 @@ html.Div(children = [
 
 navbar = dbc.NavbarSimple(
     children=[
-        dbc.NavItem(dbc.NavLink('Fælleskort', href="/Budget")),
-        dbc.NavItem(dbc.NavLink('Aktier', href="/Aktier")),
-        dbc.NavItem(dbc.NavLink('Crowdlending', href="/Crowdlending"))
-
+        dbc.NavItem(dbc.NavLink("Fælleskort", href="Faelles")),
+        dbc.NavItem(dbc.NavLink("Aktier", href="Aktier")),
+        dbc.NavItem(dbc.NavLink("Crowdlending", href="Crowdlending")),
+        dbc.DropdownMenu(
+            children=[
+                dbc.DropdownMenuItem("More pages", header=True),
+                dbc.DropdownMenuItem("Page 2", href="#"),
+                dbc.DropdownMenuItem("Page 3", href="#"),
+            ],
+            nav=True,
+            in_navbar=True,
+            label="More",
+        ),
     ],
     brand="Household BI",
-    brand_href="#",
+    brand_href="/",
     color="primary",
-    fluid=True,
     dark=True,
+    fluid=True,
 )
 
 
-app.layout = dbc.Container(
-    children=[
+faelles_layout = html.Div(id='faelles-container', children = [
+    dbc.Container(
+        children=[
+    dbc.Row(html.H2('Fælleskortet')),
+    dbc.Row([
+        dbc.Col(
+            dbc.Card(
+                dbc.CardBody(
+            html.Div(children = [
+                        dcc.RangeSlider(
+                            id='month-slider',
+                            min = 0,
+                            max = max_slider_steps,
+                            step = None,
+                            marks = {key: {'label':value[0:max_slider_steps],'style':{'transform': 'rotate(-45deg)','font-size':'8px','left':str(100/max_slider_steps*(key)-100/max_slider_steps    )+'%'}} for (key, value) in dict(unique_months).items()},
+                            value = [max_slider_steps-6,max_slider_steps]
+                            )
+            ])))
+        ),
+        dbc.Col(dbc.Alert(color="secondary", className="close", children=[
+                    html.H6(id='ban-latest-total',children=['0']),
+                    html.P('Seneste måneds udgifter'),
+                    ])
+        ),
+        dbc.Col(dbc.Alert(color="secondary", className="close",
+        children=[html.H6(id='ban-latest-groc',children=['0']),
+                  html.P('Seneste måneds dagligvarer')])
+        )
+    ]),
+    dbc.Row(dcc.Graph(id='expenditures',figure=fig_expenses)),
+    ])
+    ]
+)
 
-navbar,
-        dcc.Location(id="url"),
-
-
-
-    html.Div(id='content-field-in-app-layout')
+app.layout = html.Div(children = 
+    [navbar, dcc.Location(id="url"), 
+     dbc.Container(children=[html.Div(id='content-field-in-app-layout')])
 ])
+
 
 app.config['suppress_callback_exceptions']=True
 @app.callback(
@@ -170,8 +208,8 @@ def update_output_div(start_date,end_date):
 
 @app.callback(
     [Output('expenditures', component_property='figure'),
-     Output('lastest-expense', component_property='children'),
-     Output('percentile-groc', component_property='children')
+     Output('ban-latest-total', component_property='children'),
+     Output('ban-latest-groc', component_property='children')
     ],
     [Input('month-slider', 'value')])
 
@@ -190,8 +228,8 @@ def update_output(value):
 @app.callback(Output('content-field-in-app-layout', 'children'),
 [Input('url', 'pathname')])
 def display_page(pathname):
-    if pathname == "/Budget":
-   	    return budget_layout
+    if pathname == "/Faelles":
+   	    return faelles_layout
     elif pathname == "/":
         return budget_layout
     elif pathname == "/Aktier":

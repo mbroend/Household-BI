@@ -406,6 +406,24 @@ hr {
 #card2 {
   flex:1;
 }
+#app-page-header {
+    width: 100%;
+    height: 60px !important;
+    position: absolute;
+    top: 0px;
+    overflow: auto;
+    /*background-color: rgba(0,126,255,.24);*/
+}
+/*
+#urls {
+  font-size: 3.0rem;
+  line-height: 1.3;
+  letter-spacing: -.1rem;
+  margin-bottom: 1.5rem;
+  margin-top: 1.5rem;
+float: right;
+
+}*/
 /* Clearing
 –––––––––––––––––––––––––––––––––––––––––––––––––– */
 

@@ -2,7 +2,7 @@ import pandas as pd
 import numpy as np
 def load_data():
     # assume you have a "long-form" data frame
-    df = pd.read_csv('../data/export.csv',delimiter=';', header=None, names=['Date','Date1','Post','Value','Acc_Value'])
+    df = pd.read_csv('data/export.csv',delimiter=';', header=None, names=['Date','Date1','Post','Value','Acc_Value'])
     df.drop(columns=['Date1'],inplace=True)
     df.Value = df.Value.str.replace('.','').str.replace(',','.').astype('float64')
     df.Acc_Value = df.Acc_Value.str.replace('.','').str.replace(',','.').astype('float64')
