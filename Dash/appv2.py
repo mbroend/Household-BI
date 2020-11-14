@@ -31,12 +31,16 @@ def bar_style(fig):
     fig.update_yaxes(title='')
     fig.update_layout(paper_bgcolor='rgba(0,0,0,0)')
     fig.update_layout(plot_bgcolor='rgba(0,0,0,0)')
+    fig.update_layout(legend_font={'color':'#aaa'})
+    fig.update_xaxes(title_font={'color':'#aaa'})
+    fig.update_xaxes(tickfont={'color':'#aaa'})
+    fig.update_traces(textposition='outside')
     return
 
 fig2 = px.line(df, x="DateTime",
                 y="Acc_Value", hover_data=['Post','Value'],
                 title='Akkumuleret værdi over tid')
-fig_expenses = px.bar(dg, x="DateTime", y="Value", color='Category',title='Udgifter fordelt på kategorier')
+fig_expenses = px.bar(dg, x="DateTime", y="Value", color='Category',title='Udgifter fordelt på kategorier',text='Value')
 bar_style(fig_expenses)
 
 #cardstyle = {'borderRadius': '5px',
@@ -130,9 +134,9 @@ html.Div(children = [
 
 navbar = dbc.NavbarSimple(
     children=[
-        dbc.NavItem(dbc.NavLink("Fælleskort", href="Faelles")),
-        dbc.NavItem(dbc.NavLink("Aktier", href="Aktier")),
-        dbc.NavItem(dbc.NavLink("Crowdlending", href="Crowdlending")),
+        dbc.NavItem(dbc.NavLink("Fælleskort", href="/Faelles",id="page-1-link")),
+        dbc.NavItem(dbc.NavLink("Aktier", href="/Aktier",id="page-2-link")),
+        dbc.NavItem(dbc.NavLink("Crowdlending", href="/Crowdlending",id="page-3-link")),
         dbc.DropdownMenu(
             children=[
                 dbc.DropdownMenuItem("More pages", header=True),
@@ -148,30 +152,35 @@ navbar = dbc.NavbarSimple(
     brand_href="/",
     color="primary",
     dark=True,
-    fluid=True,
+    #id="page-1-link",
+    fluid=True
 )
 
+Error_display_layout = html.Div('Du er helt på afveje makker')
 
 faelles_layout = html.Div(id='faelles-container', children = [
-    dbc.Container(
-        children=[
-    dbc.Row(html.H2('Fælleskortet')),
-    dbc.Row([
-        dbc.Col(
-            dbc.Card(
-                dbc.CardBody(
-            html.Div(children = [
-                        dcc.RangeSlider(
-                            id='month-slider',
-                            min = 0,
-                            max = max_slider_steps,
-                            step = None,
-                            marks = {key: {'label':value[0:max_slider_steps],'style':{'transform': 'rotate(-45deg)','font-size':'8px','left':str(100/max_slider_steps*(key)-100/max_slider_steps    )+'%'}} for (key, value) in dict(unique_months).items()},
-                            value = [max_slider_steps-6,max_slider_steps]
-                            )
-            ])))
+        dbc.Row(html.H2('Fælleskortet')),
+        dbc.Row(children=[
+            dbc.Col(width=4,children=[
+                dbc.Card(
+                    dbc.CardBody(
+                        html.Div(children = [
+                            html.H4('Filtrering'),
+                            dcc.RangeSlider(
+                                id='month-slider',
+                                min = 0,
+                                max = max_slider_steps,
+                                step = None,
+                                marks = {key: {'label':value[0:max_slider_steps],'style':{'transform': 'rotate(-45deg)','font-size':'8px','left':str(100/max_slider_steps*(key)-100/max_slider_steps    )+'%'}} for (key, value) in dict(unique_months).items()},
+                                value = [max_slider_steps-6,max_slider_steps]
+                                )
+                    ]))
+                )
+            ]
         ),
-        dbc.Col(dbc.Alert(color="secondary", className="close", children=[
+        dbc.Col(width=8, children=[
+            dbc.Row(children=[
+                dbc.Col(dbc.Alert(color="secondary", className="close", children=[
                     html.H6(id='ban-latest-total',children=['0']),
                     html.P('Seneste måneds udgifter'),
                     ])
@@ -179,17 +188,41 @@ faelles_layout = html.Div(id='faelles-container', children = [
         dbc.Col(dbc.Alert(color="secondary", className="close",
         children=[html.H6(id='ban-latest-groc',children=['0']),
                   html.P('Seneste måneds dagligvarer')])
+            )
+            ]),
+            dbc.Row(dbc.Card(
+                        dbc.CardBody(dcc.Graph(id='expenditures',figure=fig_expenses))
+                    )
+            ),
+        ]
         )
-    ]),
-    dbc.Row(dcc.Graph(id='expenditures',figure=fig_expenses)),
-    ])
     ]
-)
+        )
+    
+   
+    ])
+    
 
 app.layout = html.Div(children = 
-    [navbar, dcc.Location(id="url"), 
-     dbc.Container(children=[html.Div(id='content-field-in-app-layout')])
+    [dcc.Location(id="url", refresh=False),navbar,
+     dbc.Container(html.Div(id='content-field-in-app-layout'))
 ])
+
+
+@app.callback(Output('content-field-in-app-layout', 'children'),
+[Input('url', 'pathname')])
+def display_page(pathname):
+    if pathname == "/Faelles":
+   	    return faelles_layout
+    elif pathname == "/":
+        return budget_layout
+    elif pathname == "/Aktier":
+   	    return aktier_layout
+    elif pathname == "/Crowdlending":
+   	    return crowdlending_layout
+    else:
+   	    return Error_display_layout
+
 
 
 app.config['suppress_callback_exceptions']=True
@@ -225,19 +258,7 @@ def update_output(value):
     percentile_groc = round(percentile_groc,1)
     return fig, round(latest_expense,1), percentile_groc
 
-@app.callback(Output('content-field-in-app-layout', 'children'),
-[Input('url', 'pathname')])
-def display_page(pathname):
-    if pathname == "/Faelles":
-   	    return faelles_layout
-    elif pathname == "/":
-        return budget_layout
-    elif pathname == "/Aktier":
-   	    return Marketing_layout
-    elif pathname == "/Crowdlending":
-   	    return Finance_layout
-    else:
-   	    return Error_display_layout
+
 
 if __name__ == '__main__':
     app.run_server(debug=True,port=8080,host='0.0.0.0')
