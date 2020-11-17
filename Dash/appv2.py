@@ -43,12 +43,7 @@ fig2 = px.line(df, x="DateTime",
 fig_expenses = px.bar(dg, x="DateTime", y="Value", color='Category',title='Udgifter fordelt på kategorier',text='Value')
 bar_style(fig_expenses)
 
-#cardstyle = {'borderRadius': '5px',
-#'backgroundColor':'#f9f9f9',
-#'margin':'10px',
-#'padding': '15px',
-#'position': 'relative',
-#'boxShadow': '2px 2px 2px lightgrey'}
+
 
 unique_months = dg['DateTime'].drop_duplicates().reset_index(drop=True)
 max_slider_steps = unique_months.shape[0]-1
@@ -88,8 +83,8 @@ html.Div(children = [
                     html.Div(className = 'row container-display', children = [
                         html.Div(className = 'mini_container', #id = 'card1',
                             children = [
-                                html.H6(id='lastest-expense',children=['FLASHY CARD']),
-                                html.P('Total forbrug seneste måned')
+                                html.P(id='lastest-expense',children=['FLASHY CARD']),
+                                html.H6('Total forbrug seneste måned')
                             ]),
                         html.Div(className = 'mini_container', #id ='card2',
                                 children = [
@@ -173,7 +168,18 @@ faelles_layout = html.Div(id='faelles-container', children = [
                                 step = None,
                                 marks = {key: {'label':value[0:max_slider_steps],'style':{'transform': 'rotate(-45deg)','font-size':'8px','left':str(100/max_slider_steps*(key)-100/max_slider_steps    )+'%'}} for (key, value) in dict(unique_months).items()},
                                 value = [max_slider_steps-6,max_slider_steps]
-                                )
+                                ),
+                                dbc.FormGroup(
+    [
+        dbc.Label("Vælg kategorier"),
+        dbc.Checklist(
+            options=[{'label': i, 'value': i} for i in dg.Category.unique()],
+            value=dg.Category.unique(),
+            id="switches-input",
+            switch=True,
+        ),
+    ]
+)
                     ]))
                 )
             ]
@@ -181,14 +187,18 @@ faelles_layout = html.Div(id='faelles-container', children = [
         dbc.Col(width=8, children=[
             dbc.Row(children=[
                 dbc.Col(dbc.Alert(color="secondary", className="close", children=[
-                    html.H6(id='ban-latest-total',children=['0']),
-                    html.P('Seneste måneds udgifter'),
+                    html.P(id='ban-latest-total',children=['0']),
+                    html.H6('Seneste måneds udgifter'),
                     ])
-        ),
-        dbc.Col(dbc.Alert(color="secondary", className="close",
-        children=[html.H6(id='ban-latest-groc',children=['0']),
-                  html.P('Seneste måneds dagligvarer')])
-            )
+                ),
+                dbc.Col(dbc.Alert(color="secondary", className="close", children=[
+                    html.P(id='ban-latest-groc',children=['0']),
+                    html.H6('Seneste måneds dagligvarer andel')])
+                ),
+                dbc.Col(dbc.Alert(color="secondary", className="close", children=[
+                    html.P(id='ban-latest-other',children=['0']),
+                    html.H6('Seneste måneds andet andel')])
+                )
             ]),
             dbc.Row(dbc.Card(
                         dbc.CardBody(dcc.Graph(id='expenditures',figure=fig_expenses))
@@ -244,20 +254,34 @@ def update_output_div(start_date,end_date):
      Output('ban-latest-total', component_property='children'),
      Output('ban-latest-groc', component_property='children')
     ],
-    [Input('month-slider', 'value')])
+    [Input('month-slider', 'value'),
+    Input("switches-input", "value")])
 
-def update_output(value):
-    selected_months = unique_months.loc[value[0]:value[1]]
-    fig = px.bar(dg[dg['DateTime'].isin(selected_months)],
+def update_output(month,switches_value):
+    print(switches_value)
+    selected_months = unique_months.loc[month[0]:month[1]]
+    fig = px.bar(dg[(dg['DateTime'].isin(selected_months)) & (dg['Category'].isin(switches_value))],
                 x="DateTime", y="Value",
                 color='Category',title='Udgifter fordelt på kategorier')
     bar_style(fig)
-    lastest_month = unique_months.loc[value[1]]
+    lastest_month = unique_months.loc[month[1]]
     latest_expense = dg[dg['DateTime'] == lastest_month]['Value'].sum()
     percentile_groc = 100*dg[(dg['DateTime'] == lastest_month) & (dg['Category'] == 'Dagligvarer')]['Value']/latest_expense
     percentile_groc = round(percentile_groc,1)
     return fig, round(latest_expense,1), percentile_groc
 
+# @app.callback(
+#     [Output('expenditures', component_property='figure'),
+#      Output('ban-latest-total', component_property='children'),
+#      Output('ban-latest-groc', component_property='children')
+#     ],
+#     [
+#         Input("switches-input", "value"),
+#     ],
+# )
+# def on_form_change(switches_value):
+#     print(switches_value)
+#     return #fig, round(latest_expense,1), percentile_groc
 
 
 if __name__ == '__main__':
