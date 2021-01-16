@@ -12,7 +12,7 @@ import dash_bootstrap_components as dbc
 from datetime import date
 
 import plotly.express as px
-
+import scripts.backend as b
 
 import pandas as pd
 import numpy as np
@@ -24,6 +24,9 @@ from scripts.data_wrangling import load_data
 #}
 app = dash.Dash(__name__,title='Household Analytics',external_stylesheets=[dbc.themes.SLATE])#, external_stylesheets=external_stylesheets)
 
+conn = b.connect_to_db('..\Database\household.db')
+df3 = b.get_transactions(conn)
+print(df3.head())
 
 df,df2,dg = load_data()
 def bar_style(fig):
@@ -200,9 +203,13 @@ faelles_layout = html.Div(id='faelles-container', children = [
                     html.H6('Seneste måneds andet andel')])
                 )
             ]),
-            dbc.Row(dbc.Card(
+            dbc.Row(children=[dbc.Card(
                         dbc.CardBody(dcc.Graph(id='expenditures',figure=fig_expenses))
+                    ),
+                    dbc.Card(
+                        dbc.CardBody(dbc.Table.from_dataframe(df3,striped=True, bordered=True, hover=True))
                     )
+                ]
             ),
         ]
         )
